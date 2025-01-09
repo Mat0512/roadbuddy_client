@@ -14,10 +14,15 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormControl,
+  FormLabel,
 } from '@mui/material';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 
 import axiosInstance from 'configs/axios';
 import Map from 'components/common/Map/v2/Map';
@@ -49,8 +54,10 @@ const ServiceProviderView: React.FC = () => {
   const { setRequestId, setUserId, startTimer, setIsActive } = useStore();
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<{ id: number; name: string; price: number } | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const {location} = useGeolocation()
   const user = useStore(state => state.user)
+  const [openPaymentModal, setOpenPaymentModal] = useState<boolean>(false);
 
   const { data, error, isLoading } = useQuery({
     queryKey: ['serviceProvider', id],
@@ -64,6 +71,7 @@ const ServiceProviderView: React.FC = () => {
     status: string;
     location_lat: number;
     location_lng: number;
+    payment_method: string;
   }) => {
     const { data } = await axiosInstance.post('/service-requests', payload);
     return data;
@@ -72,23 +80,20 @@ const ServiceProviderView: React.FC = () => {
   const mutation = useMutation({
     mutationFn: createServiceRequest,
     onSuccess: (data) => {
-      console.log("data at create service request", data)
-      console.log("data.request", data.service_request.service_id)
-      console.log("data.service_request.user_id", data.service_request.user_id)
-
-      alert('Service request created successfully');
-      startTimer();
       setRequestId(data.service_request.request_id);
       setUserId(data.service_request.user_id);
       setIsActive(true);
       handleCloseModal();
 
-      navigate("/")
-      // Optionally show success message
+      // if (paymentMethod === 'cash on service') {
+      //   startTimer();
+      //   navigate("/");
+      // }
+      startTimer();
+      navigate("/");
     },
     onError: (error) => {
       handleCloseModal();
-      // Optionally show error message
       console.error('Error creating service request:', error);
       alert('Error creating service request');
     },
@@ -107,9 +112,17 @@ const ServiceProviderView: React.FC = () => {
       status: 'pending',
       location_lat: location?.lat || 0,
       location_lng: location?.long || 0,
+      payment_method: paymentMethod || 'cash on service',
     };
 
+    // if (paymentMethod === 'online payment') {
+    //   const result = await mutation.mutateAsync(payload);
+    //   await handlePayOnline(result.service_request.request_id);
+    // } else {
+    //   mutation.mutate(payload);
+    // }
     mutation.mutate(payload);
+
   };
 
   if (isLoading) return <Typography>Loading...</Typography>;
@@ -118,9 +131,60 @@ const ServiceProviderView: React.FC = () => {
 
   const serviceProvider = data.provider;
 
+
+  // const handlePayOnline = async (requestId: number) => {
+  //   try {
+  //     const secretKey = 'sk_test_7Kcg3jtpPaycB76kR4sHW7xw';
+  //     const basicToken = btoa(`${secretKey}:`);
+
+  //     const options = {
+  //       method: 'POST',
+  //       headers: {
+  //         accept: 'application/json',
+  //         'Content-Type': 'application/json',
+  //         authorization: `Basic ${basicToken}`,
+  //       },
+  //       body: JSON.stringify({
+  //         data: {
+  //           attributes: {
+  //             send_email_receipt: true,
+  //             show_description: true,
+  //             show_line_items: true,
+  //             line_items: [
+  //               {
+  //                 currency: 'PHP',
+  //                 amount: selectedService!.price * 100,
+  //                 description: selectedService!.name,
+  //                 name: selectedService!.name,
+  //                 quantity: 1,
+  //               },
+  //             ],
+  //             payment_method_types: ['card', 'gcash'],
+  //             description: selectedService!.name,
+  //             success_url: `http://localhost:3000/dnx/pages/tracking/${requestId}`,
+  //           },
+  //         },
+  //       }),
+  //     };
+
+  //     const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', options);
+  //     const resData = await response.json();
+
+  //     if (resData.data && resData.data.attributes.checkout_url) {
+  //       window.location.replace(resData.data.attributes.checkout_url);
+  //     } else {
+  //       console.error('Failed to generate payment session:', resData);
+  //       alert('Failed to initialize payment. Please try again.');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error:', error);
+  //     alert('An error occurred. Please try again.');
+  //   }
+  // };
+
   const handleOpenModal = (serviceId: number, serviceName: string, price: number) => {
     setSelectedService({ id: serviceId, name: serviceName, price });
-    setOpenModal(true);
+    setOpenPaymentModal(true);
   
   };
 
@@ -128,6 +192,15 @@ const ServiceProviderView: React.FC = () => {
     setOpenModal(false);
     setSelectedService(null);
     
+  };
+
+  const handlePaymentMethodSelect = () => {
+    if (!paymentMethod) {
+      alert('Please select a payment method');
+      return;
+    }
+    setOpenPaymentModal(false);
+    setOpenModal(true);
   };
 
   const baseLocation = {
@@ -229,6 +302,40 @@ const ServiceProviderView: React.FC = () => {
         </Card>
       </Grid>
 
+      <Dialog open={openPaymentModal} onClose={() => setOpenPaymentModal(false)}>
+        <DialogTitle>Select Payment Method</DialogTitle>
+        <DialogContent>
+          <FormControl component="fieldset">
+            <FormLabel component="legend">Payment Method</FormLabel>
+            <RadioGroup
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <FormControlLabel value="cash on service" control={<Radio />} label="Cash on Service" />
+              <FormControlLabel value="online payment" control={<Radio />} label="Pay Online" />
+            </RadioGroup>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            variant="contained" 
+            color="error" 
+            sx={{color: 'white'}} 
+            onClick={() => setOpenPaymentModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            sx={{color: 'white'}} 
+            onClick={handlePaymentMethodSelect}
+          >
+            Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={openModal} onClose={handleCloseModal}>
         <DialogTitle>Avail Service</DialogTitle>
         <DialogContent>
@@ -257,6 +364,8 @@ const ServiceProviderView: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      
 
      
     </Container>

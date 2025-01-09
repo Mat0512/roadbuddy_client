@@ -45,7 +45,15 @@ const Home = () => {
         navigate(`/pages/sp-maps`)
 
     }
-    const storeTypes = ['vulcanizing-shop', 'gasoline-station']
+    const storeTypes = [
+        'vulcanizing-shop',
+        'gasoline-station',
+        'motor-shop',
+        'motor-parts-shop',
+        'car-repair-shop',
+        'battery-shop',
+        'gasoline-vendor'
+    ]
 
 
     return (

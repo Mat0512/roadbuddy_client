@@ -64,44 +64,46 @@ const mockServiceProviderData = [ // Mock data to use when no data is retrieved
 const isCurrentlyOpen = (provider: Providers): boolean => {
   try {
     const currentDate = new Date();
-    const dayOfWeek = getDay(currentDate); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = getDay(currentDate);
     
     // Get the business hours for the current day
     let businessHours: string | null;
     switch (dayOfWeek) {
-      case 0:
-        businessHours = provider.business_hours_sunday;
-        break;
-      case 1:
-        businessHours = provider.business_hours_monday;
-        break;
-      case 2:
-        businessHours = provider.business_hours_tuesday;
-        break;
-      case 3:
-        businessHours = provider.business_hours_wednesday;
-        break;
-      case 4:
-        businessHours = provider.business_hours_thursday;
-        break;
-      case 5:
-        businessHours = provider.business_hours_friday;
-        break;
-      case 6:
-        businessHours = provider.business_hours_saturday;
-        break;
-      default:
-        return false;
+      case 0: businessHours = provider.business_hours_sunday; break;
+      case 1: businessHours = provider.business_hours_monday; break;
+      case 2: businessHours = provider.business_hours_tuesday; break;
+      case 3: businessHours = provider.business_hours_wednesday; break;
+      case 4: businessHours = provider.business_hours_thursday; break;
+      case 5: businessHours = provider.business_hours_friday; break;
+      case 6: businessHours = provider.business_hours_saturday; break;
+      default: return false;
     }
 
-    // If no business hours for current day, provider is closed
-    if (!businessHours) return false;
+    // If no business hours for current day or if explicitly "Closed", provider is closed
+    if (!businessHours || businessHours.toLowerCase() === 'closed') return false;
 
-    const [start, end] = businessHours.split(' - ');
+    // Validate time format and add space between time and AM/PM if needed
+    const timeRegex = /^(\d{1,2}:\d{2})\s*([AaPp][Mm])\s*-\s*(\d{1,2}:\d{2})\s*([AaPp][Mm])$/;
+    const match = businessHours.match(timeRegex);
     
-    // Parse the business hours
-    const startTime = parse(start, 'h:mm aa', currentDate);
-    const endTime = parse(end, 'h:mm aa', currentDate);
+    if (!match) {
+      console.error('Invalid time format:', businessHours);
+      return false;
+    }
+
+    // Format times with proper spacing
+    const startTimeStr = `${match[1]} ${match[2].toUpperCase()}`;
+    const endTimeStr = `${match[3]} ${match[4].toUpperCase()}`;
+    
+    // Parse the business hours using the correct format
+    const startTime = parse(startTimeStr, 'h:mm a', currentDate);
+    const endTime = parse(endTimeStr, 'h:mm a', currentDate);
+    
+    // Validate parsed times
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      console.error('Invalid time values after parsing');
+      return false;
+    }
     
     // Create current time with today's date
     const currentTime = new Date();
@@ -208,6 +210,7 @@ console.log("userLocation", userLocation)
               onVisit={() => handleClick(serviceProviderData.provider_id)}
             /> : null
           ))
+         
       )}
     </>
   );

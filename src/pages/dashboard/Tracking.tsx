@@ -38,6 +38,7 @@ interface QueryResponse {
     location_lng: number;
     service_id: number;
     rating: number;
+    payment_method: string | null;
     provider: {
       provider_id: number,
       service_provider_name: string,
@@ -51,7 +52,7 @@ interface QueryResponse {
       service_name: string;
       price: number;
       description: string;
-    }
+    } 
   };
 }
 
@@ -102,6 +103,7 @@ interface ServiceRequestsResponse {
   message: string;
   service_requests: ServiceRequest[];
 }
+
 interface UpdateServiceRequestsParams {
   requestId: number;
   status: string;
@@ -245,6 +247,15 @@ export default function ServiceTrackingPage() {
         <CardContent>
           <Typography variant="body1" display="flex" alignItems="center">
             Status: {data.service_request.status.toUpperCase()}
+          </Typography>
+        </CardContent>
+      </Card>
+
+      <Card variant="outlined" sx={{ mb: 2 }}>
+        <CardHeader title="Payment" />
+        <CardContent>
+          <Typography variant="body1" display="flex" alignItems="center">
+          {data.service_request.payment_method?.toUpperCase()}
           </Typography>
         </CardContent>
       </Card>
