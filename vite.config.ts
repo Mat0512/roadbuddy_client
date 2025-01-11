@@ -26,7 +26,7 @@ export default defineConfig(({ command, mode }) => {
     preview: {
       port: 5000,
     },
-    base: '/dnx',
+    base: '/',
     define: {
       'process.env.REACT_APP_GOOGLE_MAPS_API_KEY': JSON.stringify(
         env.REACT_APP_GOOGLE_MAPS_API_KEY,
